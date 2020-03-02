@@ -1,0 +1,105 @@
+<!DOCTYPE html> 
+<html lang="cn"> 
+<head>
+    <meta charset="UTF-8">
+    <title>作业列表</title>
+	<script src="{{url_for('static', filename='jquery-3.4.1.js')}}"></script>
+    <style>
+.table_title {
+    font-weight: 600;
+    text-align: center;
+    font-family: monospace;
+    padding-left: 12px;
+    padding-right: 6px;
+    background-color: #FFFFE0;
+}
+.cell {
+    text-align: center;
+    font-family: monospace;
+    padding-left: 12px;
+    padding-right: 6px;
+    padding-top: 0px;
+    padding-bottom: 0px;
+    height: 48px;
+}
+.paper {
+    width: 100%;
+    margin: 0;
+    font-family: monospace
+}
+.title {
+    font-size: 1.6rem;
+    font-weight: 800;
+    text-align: center;
+    margin-top: 30px;
+    margin-bottom: 50px;
+    height: 55px;
+}
+	</style>
+	<script type="text/javascript">
+	$(function(){
+		$("#upload_button").click(function(){
+			$("#file").click();
+		})
+		$("#file").change(function(){
+			$("#upload_form").submit()
+		})
+		var msg = $("#msg")[0].value;
+		if(msg != "")
+			alert(msg);
+		console.log(msg);
+	})
+	</script>
+</head>
+<body class="paper">
+	<input type="hidden" id="msg" value="{{msg}}"></input>
+    <div class="title">
+        Welcome, {{user.name}}
+        ({{user.id}}).
+        <a href="{{ url_for('logout') }}" style="float: right; font-size: 0.8rem;padding-top: 20px;">Logout</a>
+    </div>
+
+    <table class="paper" border="1" cellspacing="0" cellpadding="0">
+        <tr class="table_title">
+            <td style="width: 20px;">序号</td>
+            <td style="width: 30%">作业名称</td>
+            <td>作业内容</td>
+            <td style="width: 10%">操作</td>
+        </tr>
+        {% for hs in hss %}
+        <tr class="cell">
+            <td style="width: 20px;">{{hs.id}}</td>
+            <td style="width: 30%">{{hs.name}}</td>
+            <td>{{hs.description}}</td>
+            <td style="width: 10%">
+			{% if hs.statu == "未提交" or hs.statu == "" %}
+				<input type="button" id="upload_button" value="上传" />
+                <form style="display: none;" id="upload_form" action="{{ url_for('upload') }}" method="post" enctype="multipart/form-data">
+                    <input name="homework_id" type="hidden" value="{{hs.id}}"/>
+					<input type="file" id="file" name="file" />
+                </form>
+            {% elif hs.statu == "已提交" %}
+                <form action="{{ url_for('download') }}" method="post">
+                    <input name="homework_id" type="hidden" value="{{hs.id}}"/>
+                    <button type="submit">下载</button>
+                </form>
+				<br/>
+				<input type="button" id="upload_button" value="重新上传" />
+				<form style="display: none;" id="upload_form" action="{{ url_for('upload') }}" method="post" enctype="multipart/form-data">
+					<input name="homework_id" type="hidden" value="{{hs.id}}"/>
+					<input type="file" id="file" name="file" />
+				</form>
+            {% elif hs.statu == "已结束" %}
+                <form action="{{ url_for('download') }}" method="post">
+                    <input name="homework_id" type="hidden" value="{{hs.id}}"/>
+                    <button type="submit">下载</button>
+                </form>
+            {% else %}
+                <label>Error Statu: {{hs.statu}}</label>
+            {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html> 

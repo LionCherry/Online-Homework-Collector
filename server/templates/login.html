@@ -1,0 +1,17 @@
+<!DOCTYPE html> 
+<html lang="cn"> 
+<head>
+    <meta charset="UTF-8"> 
+    <title>登陆页面</title>
+</head>
+<body>
+    <form action="{{ url_for('login') }}" method="post">
+        学号：<input name="id" type="text" value="{{id}}"/><br/>
+        密码：<input name="pwd" type="password" value="{{pwd}}"/><br/>
+        <button type="submit">登录</button>
+        {% if msg %}
+            <label style="color:red">{{ msg }}</label>
+        {% endif %}
+    </form>
+</body>
+</html> 
