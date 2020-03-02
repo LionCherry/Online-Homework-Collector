@@ -27,8 +27,11 @@ class Monitor:
             if user.id == id:
                 return user
         return None
-    def load_homework(self):
-        return self.homework_list
+    def load_homework(self, homework_id):
+        for homework in self.homework_list:
+            if homework.id == homework_id:
+                return homework
+        return None
     def load_statu(self, user_id, homework_id):
         for statu in self.statu_list:
             if statu.user_id == user_id:

@@ -4,6 +4,7 @@ The class.
 '''
 
 import os
+import time
 import flask_login
 
 
@@ -42,10 +43,12 @@ class User(flask_login.UserMixin):
         return '<User %s>' % self.id
 
 class Homework:
-    def __init__(self, id: str, name: str, description: str):
-        self.id, self.name, self.description = id, name, description
+    def __init__(self, id: str, time: str, name: str, description: str):
+        self.id, self.time, self.name, self.description = id, time, name, description
     def as_list(self):
-        return [self.id, self.name, self.description]
+        return [self.id, self.time, self.name, self.description]
+    def get_timestamp(self):
+        return int(time.mktime(time.strptime(self.time, '%Y-%m-%d %H:%M:%S')))
 
 class Statu:
     def __init__(self, user_id, homework_id, statu: str, filename: str):

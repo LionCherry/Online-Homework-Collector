@@ -15,11 +15,10 @@ INDEX_FILE = "dashboard.bundle.js"
 
 MONITOR_TIME_PERIOD = 30
 
-DB_USER = '../../user.tsv'
-DB_HOMEWORK = '../../homework.tsv'
-DB_STATU = '../../statu.tsv'
+DB_USER = 'user.tsv'
+DB_HOMEWORK = 'homework.tsv'
+DB_STATU = 'statu.tsv'
 
-FILE_SAVE_DIR = '../../Homework'
+FILE_SAVE_DIR = 'Homework'
 
-HOMEWORK_STATU = ['未提交', '已提交', '已结束']
 HOMEWORK_ALLOW_EXT = ['cpp','c','h','hpp','rar','zip','doc','docx','txt','tsv','png','jpg','bmp']

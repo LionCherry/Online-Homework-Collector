@@ -1,0 +1,19 @@
+<!DOCTYPE html> 
+<html lang="cn"> 
+<head>
+	<meta charset="UTF-8"> 
+	<title>修改密码</title>
+</head>
+<body>
+	<form action="{{ url_for('modify_pwd') }}" method="post">
+		学号：<input name="id" type="text" value="{{id}}"/><br/>
+		旧密码：<input name="pwd" type="password" value=""/><br/>
+		新密码：<input name="new_pwd" type="password" value=""/><br/>
+		<button type="submit">修改</button>
+		{% if msg %}
+			<label style="color:red">{{ msg }}</label>
+		{% endif %}
+	</form>
+	<a href="{{ url_for('login') }}">登录</a>
+</body>
+</html> 
