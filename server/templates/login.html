@@ -3,16 +3,59 @@
 <head>
 	<meta charset="UTF-8"> 
 	<title>登陆页面</title>
+	<script src="{{url_for('static', filename='jquery-3.4.1.js')}}"></script>
+	<link href="{{url_for('static', filename='mystyle.css')}}" rel="stylesheet" type="text/css" />
+	<script type="text/javascript">
+	</script>
 </head>
 <body>
+	<table class="table"><tbody>
 	<form action="{{ url_for('login') }}" method="post">
-		学号：<input name="id" type="text" value="{{id}}"/><br/>
-		密码：<input name="pwd" type="password" value=""/><br/>
-		<button type="submit">登录</button>
-		{% if msg %}
-			<label style="color:red">{{ msg }}</label>
-		{% endif %}
+		<tr style="margin-top: 20px; margin-bottom: 20px;">
+			<td></td>
+			<td class="tabel_cell" style="width:100px;font-weight:bold;">学号</td>
+			<td class="tabel_cell" style="width:200px;">
+				<input name="id" type="text" value="{{id}}" style="width:80%"/>
+			</td>
+			<td></td>
+		</tr>
+		<tr style="margin-top: 20px;">
+			<td></td>
+			<td class="tabel_cell" style="width:100px;font-weight:bold;">密码</td>
+			<td class="tabel_cell" style="width:200px;">
+				<input name="pwd" type="password" value="" style="width:80%"/>
+			</td>
+			<td></td>
+		</tr>
+		<tr>
+			<td></td>
+			<td colspan="2" class="tabel_cell" style="width:300px; height: 30px; font-size:12px;">
+				{% if msg %}
+				<label style="color:red">{{ msg }}</label>
+				{% endif %}
+			</td>
+			<td></td>
+		</tr>
+		<tr style="margin-bottom: 20px;">
+			<td></td>
+			<!-- <button type="submit">登录</button> -->
+			<td colspan="2" class="tabel_cell" style="width:300px;">
+				<span class="button">
+					<button type="submit" style="width: 30%;">
+						登  录
+					</button>
+				</span>
+				<span class="button">
+					<a href="{{ url_for('modify_pwd') }}"
+					style="width: 30%; margin-left: 40px;">
+						修改密码
+					</a>
+				</span>
+			</td>
+			<td></td>
+		</tr>
 	</form>
-	<a href="{{ url_for('modify_pwd') }}">修改密码</a>
+	<!-- <a href="{{ url_for('modify_pwd') }}">修改密码</a> -->
+	</tbody></table>
 </body>
 </html> 

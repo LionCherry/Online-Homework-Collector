@@ -21,7 +21,6 @@ app = flask.Flask(
 	__name__,
 	static_folder='./static')
 	
-WORKSPACE_PATH = sys.argv[1]
 
 ##########
 # Terminate
@@ -44,17 +43,20 @@ def setup_monitor(app):
 	setup the monitor
 	'''
 	global monitor
-	global WORKSPACE_PATH
 	monitor = Monitor(
-		os.path.join(WORKSPACE_PATH, app.config['DB_USER']),
-		os.path.join(WORKSPACE_PATH, app.config['DB_HOMEWORK']),
-		os.path.join(WORKSPACE_PATH, app.config['DB_STATU'])
+		app.config['DB_USER'],
+		app.config['DB_HOMEWORK'],
+		app.config['DB_STATU']
 	)
 	# setup the singal
 	for sig in [signal.SIGINT, signal.SIGTERM]:
 		signal.signal(sig, terminate_app)
-def setup_app(app):
+def setup_app(app, argv):
+	WORKSPACE_PATH = argv[1]
 	app.config.from_object('default_settings')
+	app.config['WORKSPACE_PATH'] = WORKSPACE_PATH
+	for db in ['DB_USER', 'DB_HOMEWORK', 'DB_STATU', 'FILE_SAVE_DIR']:
+		app.config[db] = os.path.join(WORKSPACE_PATH, app.config[db])
 	app.logger.addHandler(logging.StreamHandler())
 	app.logger.setLevel(logging.DEBUG)
 	# app.logger.info('STATIC_VERSION = {}'.format(app.config['STATIC_VERSION']))
@@ -191,6 +193,7 @@ def upload():
 			replace = True
 		file.save(filepath)
 		if not os.path.exists(filepath):
+			app.logger.exception('No Exists: %s' % filepath)
 			raise IOError('文件未储存')
 		# update in statu
 		if time.time() > homework.get_timestamp():
@@ -199,9 +202,11 @@ def upload():
 				statu.statu = '已补交'
 				msg = '补交成功' if not replace else '补交替换成功'
 			else:
-				statu.statu = '已提交' if not replace else '替换成功'
+				statu.statu = '已提交'
+				msg = '提交成功' if not replace else '替换成功'
 		else:
-			statu.statu = '已提交' if not replace else '替换成功'
+			statu.statu = '已提交'
+			msg = '提交成功' if not replace else '替换成功'
 		statu.filename = filename
 	except Exception as e:
 		app.logger.exception('Exception: %s' % e)
@@ -225,6 +230,7 @@ def download():
 		if statu.statu == '未提交':
 			raise IOError('未提交')
 		if not filename or not os.path.exists(filepath):
+			app.logger.exception('No Exists: %s' % filepath)
 			raise IOError('未找到文件(%s)' % filename)
 		app.logger.info("download user(%s) homework(%s) file(%s) from path: %s" % (user_id, homework_id, filename, filepath))
 		return flask.send_file(
@@ -253,7 +259,7 @@ def index(page):
 
 
 
-setup_app(app)
+setup_app(app, sys.argv)
 
 if __name__ == "__main__":
 	app.run(host="0.0.0.0", port=app.config["PORT"], threaded=True)
