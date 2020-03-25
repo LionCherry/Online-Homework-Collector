@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 '''
-The utils for dashboard server.
+The utils for server.
 '''
 
 import json
