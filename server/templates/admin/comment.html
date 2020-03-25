@@ -58,10 +58,10 @@
 		</tr>
 		<tr style="border:1px;">
 			<td colspan="6" class="tabel_cell" style="font-family: Consolas; text-align: left;">
-				<div style="height: 300px; overflow:scroll">
+				<div style="height: 300px; overflow:scroll; border: 3px gold solid;">
 				{% if statu.content %}
 					{% for i, c in statu.content %}
-					<div>{{ ('&nbsp;'*i if i > 0 else '') | safe }}{{ c }}</div>
+						{{ ('&nbsp;'*i if i > 0 else '') | safe }}{{ c }}<br/>
 					{% endfor %}
 				{% else %}
 					<div style="font-style: italic; color: red">nothing to show.</div>
@@ -86,8 +86,10 @@
 			</td>
 			<td colspan="3" class="tabel_cell" style="text-align: left;">
 				{% if compile_msg %}
-					{% for a in compile_msg.split('\n') %}
-					<div style="color: {{'red' if loop.index == 1 else 'black'}}">{{ a.replace(' ','&nbsp;').replace('\t','&nbsp;&nbsp;&nbsp;&nbsp;') | safe}}</div>
+					{% for i, c in compile_msg %}
+					<div style="height: 16px; color: {{'red' if loop.index == 1 else 'black'}};">
+						{{ ('&nbsp;'*i if i > 0 else '') | safe }}{{ c }}
+					</div>
 					{% endfor %}
 				{% endif %}
 			</td>

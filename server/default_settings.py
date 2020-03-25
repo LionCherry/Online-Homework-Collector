@@ -23,8 +23,8 @@ DB_HOMEWORK = 'homework.tsv'
 DB_STATU = 'statu.tsv'
 
 FILE_SAVE_DIR = 'Homework'
-FILE_IN = 'in.txt'
-FILE_OUT = 'out.txt'
+FILE_IN_EXT = 'in'
+FILE_OUT_EXT = 'out'
 ADMIN_ID = 'tester'
 
 HOMEWORK_ALLOW_EXT = ['cpp','c','h','hpp','rar','zip','doc','docx','pdf','txt','tsv','png','jpg','bmp']

@@ -21,6 +21,12 @@ import judger
 app = flask.Flask(
 	__name__,
 	static_folder='./static')
+
+
+def get_allow_ext_list(allow_ext_list):
+	if not allow_ext_list or ('all' in allow_ext_list or 'ALL' in allow_ext_list or 'All' in allow_ext_list):
+		return app.config['HOMEWORK_ALLOW_EXT']
+	return allow_ext_list	
 	
 
 ##########
@@ -154,7 +160,7 @@ def home():
 			'id': h.id,
 			'time': h.time,
 			'timestamp': h.get_timestamp(),
-			'allow_ext_list': h.allow_ext_list,
+			'allow_ext_list': ','.join(get_allow_ext_list(h.allow_ext_list.split(','))),
 			'name': h.name,
 			'description_list': h.description.split('\\n'),
 			# 'description_height': 24 + 20 * len(homework.description.split('\\n')),
@@ -194,9 +200,22 @@ def judge(user, statu):
 		app.config['FILE_SAVE_DIR'],
 		statu.homework_id)
 	filepath = os.path.join(path, statu.filename)
-	in_filename = os.path.join(path, app.config['FILE_IN'])
-	out_filename = os.path.join(path, app.config['FILE_OUT'])
+	in_filename = os.path.join(
+		app.config['FILE_SAVE_DIR'],
+		'%s.%s' % (statu.homework_id, app.config['FILE_IN_EXT']))
+	out_filename = os.path.join(
+		app.config['FILE_SAVE_DIR'],
+		'%s.%s' % (statu.homework_id, app.config['FILE_OUT_EXT']))
 	return judger.judge(filepath, in_filename, out_filename, delete_exe=False)
+def get_blank_str_list(s):
+	res = []
+	for line in s.replace('\t', ' '*4).split('\n'):
+		i = 0
+		for c in line:
+			if c != ' ': break
+			i += 1
+		res.append((i, line[i:]))
+	return res
 
 
 @app.route('/comment/<homework_id>', methods=["GET"])
@@ -294,7 +313,7 @@ def comment(homework_id, user_id):
 			raise IOError('未找到作业提交状态(%s, %s)' % (user_id, homework_id))
 		if statu.statu in [None, '', '未提交']:
 			raise IOError('未提交(%s, %s)' % (user_id, homework_id))
-		content = []
+		content = ''
 		ext = statu.filename.rsplit('.', 1)[1].lower()
 		if ext in app.config['SHOW_ALLOW_EXT']:
 			path = os.path.join(
@@ -302,13 +321,7 @@ def comment(homework_id, user_id):
 				statu.homework_id)
 			filepath = os.path.join(path, statu.filename)
 			try:
-				tmp = judger.read_file(filepath)
-				for line in tmp.replace('\t', ' '*4).split('\n'):
-					i = 0
-					for c in line:
-						if c != ' ': break
-						i += 1
-					content.append((i, line[i:]))
+				content = judger.read_file(filepath)
 			except Exception as ex:
 				print(ex)
 				pass
@@ -321,7 +334,7 @@ def comment(homework_id, user_id):
 			'score': statu.score,
 			'comment': statu.comment,
 			'filename': statu.filename,
-			'content': content,
+			'content': get_blank_str_list(content) if content else '',
 			'no_compile': ext not in app.config['COMPILE_ALLOW_EXT'],
 		}
 		return flask.render_template(
@@ -385,6 +398,7 @@ def comment_oper(homework_id, user_id, oper):
 		elif oper == 'compile':
 			# ext = statu.filename.rsplit('.', 1)[1].lower()
 			# if ext not in app.config['COMPILE_ALLOW_EXT']:
+			compile_msg = ''
 			try:
 				judge(user=user, statu=statu)
 				statu.score, statu.comment = '1.00', ''
@@ -395,14 +409,15 @@ def comment_oper(homework_id, user_id, oper):
 					homework_id=homework_id,
 					msg = msg))
 			except judger.EX as ex:
-				msg = '%s\n%s' % (type(ex).NAME, ex.msg)
+				compile_msg = '%s\n%s' % (type(ex).NAME, ex.msg)
 			except Exception as ex:
-				msg = ex
+				compile_msg = ex
 			return flask.redirect(flask.url_for(
 				'comment',
 				homework_id=homework_id,
 				user_id=user_id,
-				compile_msg = msg))
+				compile_msg = get_blank_str_list(compile_msg) if compile_msg else ''
+			))
 		else:
 			raise Exception('Error Operation (%s)' % oper)
 	except Exception as e:
@@ -448,8 +463,7 @@ def upload():
 		if not homework:
 			raise Exception('未选中作业(%s)' % homework_id)
 		allow_ext_list = homework.allow_ext_list.split(',')
-		if not allow_ext_list or ('all' in allow_ext_list or 'ALL' in allow_ext_list or 'All' in allow_ext_list):
-			allow_ext_list = app.config['HOMEWORK_ALLOW_EXT']
+		allow_ext_list = get_allow_ext_list(allow_ext_list)
 		if ext not in allow_ext_list:
 			raise IOError('文件拓展名需要在规定范围内(%s)'%(','.join(allow_ext_list)))
 		statu = monitor.load_statu(user_id=user_id, homework_id=homework_id)
