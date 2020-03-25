@@ -14,6 +14,10 @@ TOKENNAME_RE_BOOST = re.compile(r'[A-Za-z0-9_-]+')
 DEFAULT_TAG = 'head'
 
 
+def fix(s):
+    if s is None: return None
+    return s.replace('\r\n', '\\n').replace('\r', '\\n').replace('\n', '\\n').replace('\t', '\\t')
+
 def json_response():
     '''
     Decorator for return json-type http response

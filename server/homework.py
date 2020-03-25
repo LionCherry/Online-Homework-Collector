@@ -5,6 +5,7 @@ The class.
 
 import os
 import time
+import threading
 import flask_login
 
 
@@ -27,9 +28,17 @@ def save_array(filename: str, array: list):
 
 class User(flask_login.UserMixin):
     def __init__(self, id: str, pwd: str, name: str):
+        self.lock = threading.RLock()
         self.id, self.pwd, self.name = id, pwd, name
     def as_list(self):
         return [self.id, self.pwd, self.name]
+
+    def __setattr__(self, name, value):
+        if name != 'lock': self.lock.acquire()
+        try:
+            return super().__setattr__(name, value)
+        finally:
+            if name != 'lock': self.lock.release()
     
     def is_authenticated(self):
         return True
@@ -44,14 +53,23 @@ class User(flask_login.UserMixin):
 
 class Homework:
     def __init__(self, id: str, time: str, name: str, allow_ext_list: str, description: str):
+        self.lock = threading.RLock()
         self.id, self.time, self.name, self.allow_ext_list, self.description = id, time, name, allow_ext_list, description
     def as_list(self):
         return [self.id, self.time, self.name, self.allow_ext_list, self.description]
     def get_timestamp(self):
         return int(time.mktime(time.strptime(self.time, '%Y-%m-%d %H:%M:%S')))
 
+    def __setattr__(self, name, value):
+        if name != 'lock': self.lock.acquire()
+        try:
+            return super().__setattr__(name, value)
+        finally:
+            if name != 'lock': self.lock.release()
+
 class Statu:
     def __init__(self, user_id, homework_id, statu: str, filename: str, score, comment):
+        self.lock = threading.RLock()
         self.user_id = user_id
         self.homework_id = homework_id
         self.statu = statu
@@ -60,3 +78,10 @@ class Statu:
         self.comment = comment
     def as_list(self):
         return [self.user_id, self.homework_id, self.statu, self.filename, self.score, self.comment]
+        
+    def __setattr__(self, name, value):
+        if name != 'lock': self.lock.acquire()
+        try:
+            return super().__setattr__(name, value)
+        finally:
+            if name != 'lock': self.lock.release()

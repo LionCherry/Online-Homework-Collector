@@ -11,7 +11,7 @@
 	margin: 3%;
 	font-family: monospace;
 }
-.table_title{
+.table_title td{
 	font-weight: 600;
 	text-align: center;
 	font-family: 微软雅黑,宋体,Arial,Helvetica,Verdana,sans-serif;

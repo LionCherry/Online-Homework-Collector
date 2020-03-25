@@ -25,5 +25,8 @@ DB_STATU = 'statu.tsv'
 FILE_SAVE_DIR = 'Homework'
 FILE_IN = 'in.txt'
 FILE_OUT = 'out.txt'
+ADMIN_ID = 'tester'
 
 HOMEWORK_ALLOW_EXT = ['cpp','c','h','hpp','rar','zip','doc','docx','pdf','txt','tsv','png','jpg','bmp']
+SHOW_ALLOW_EXT = ['cpp','c','h','hpp', 'txt', 'tsv']
+COMPILE_ALLOW_EXT = ['cpp','c','h','hpp']

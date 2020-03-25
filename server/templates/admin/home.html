@@ -2,7 +2,7 @@
 <html lang="cn"> 
 <head>
 	<meta charset="UTF-8">
-	<title>作业列表</title>
+	<title>管理员操作台</title>
 	<script src="{{url_for('static', filename='jquery-3.4.1.js')}}"></script>
 	<link href="{{url_for('static', filename='mystyle.css')}}" rel="stylesheet" type="text/css" />
 	<script type="text/javascript">
@@ -61,7 +61,7 @@
 			<td style="width: 100px;">截止时间</td>
 			<td style="width: 180px">作业名称</td>
 			<td>作业内容</td>
-			<td style="width: 200px;">评分 / 评语</td>
+			<td style="width: 200px;">已提交 / 总人数</td>
 			<td style="width: 10%">操作</td>
 		</tr>
 		{% for hs in hss %}
@@ -78,83 +78,18 @@
 				<div>{{ desc }}</div>
 				{% endfor %}
 			</td>
-			<!-- 评分 / 评语 -->
-			{% if hs.score == "" %}
-				<td class="tabel_cell">
-					未评分
-				</td>
-			{% else %}
-				<td class="tabel_cell" style="background-color: lightgoldenrodyellow;">
-					{{hs.score}}分
-					{% if hs.comment != "" %}
-						<br />
-						{{hs.comment}}
-					{% endif %}
-				</td>
-			{% endif %}
+			<!-- 已提交 / 总人数 -->
+			<td class="tabel_cell">
+				nothing
+			</td>
 			<!-- 操作 -->
 			<td class="tabel_cell">
-			{% if now_timestamp > hs.timestamp %}
-				{% if hs.statu == "未提交" or hs.statu == "" %}
-				<form id="upload_form" action="{{ url_for('upload') }}" method="post" enctype="multipart/form-data"
-				class="button">
+				<form action="{{ url_for('comment_search', homework_id=hs.id) }}" method="get" class="button" style="display:inline;">
 					<input name="homework_id" type="hidden" value="{{hs.id}}"/>
-					<span style="color: red;">
-						未提交
-					</span>
-					<input style="display: none;" name="file" type="file" class="file"
-					allow_ext_list="{{hs.allow_ext_list}}"/>
-					<a class="upload_button" style="width: 36px;" href="#">
-					补交
-					</a>
-				</form>
-				{% else %}
-				<form action="{{ url_for('download') }}" method="post"
-				class="button">
-					<input name="homework_id" type="hidden" value="{{hs.id}}"/>
-					{% if hs.statu == "已补交" %}
-					<span style="color: darkred;">
-						已补交
-					</span>
-					{% endif %}
-					<button type="submit" style="width: 36px;">
-						下载
+					<button type="submit" style="width: 36px; background-color: darkred;" >
+						批改
 					</button>
 				</form>
-				{% endif %}
-			{% elif hs.statu == "未提交" or hs.statu == "" %}
-			<form id="upload_form" action="{{ url_for('upload') }}" method="post" enctype="multipart/form-data"
-			class="button">
-				<input name="homework_id" type="hidden" value="{{hs.id}}"/>
-				<input style="display: none;" name="file" type="file" class="file"
-				allow_ext_list="{{hs.allow_ext_list}}"/>
-				<a class="upload_button" style="width: 36px;" href="#">
-					上传
-				</a>
-			</form>
-			{% else %} {# if hs.statu == "已提交" or hs.statu == "已补交" #}
-			<form action="{{ url_for('download') }}" method="post"
-			class="button" style="display:inline;">
-				<input name="homework_id" type="hidden" value="{{hs.id}}"/>
-				{% if hs.statu == "已补交" %}
-				<span style="color: darkred;">
-					已补交
-				</span>
-				{% endif %}
-				<button type="submit" style="width: 36px;" >
-					下载
-				</button>
-			</form>
-			<form id="upload_form" action="{{ url_for('upload') }}" method="post" enctype="multipart/form-data"
-			class="button" style="display:inline;">
-				<input name="homework_id" type="hidden" value="{{hs.id}}"/>
-				<input style="display: none;" name="file" type="file" class="file"
-				allow_ext_list="{{hs.allow_ext_list}}"/>
-				<a class="upload_button" style="width: 36px;" href="#">
-					替换
-				</a>
-			</form>
-			{% endif %}
 			</td>
 		</tr>
 		{% endfor %}

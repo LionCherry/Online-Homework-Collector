@@ -2,12 +2,16 @@
 '''
 The monitor for database.
 '''
-from homework import *
+import threading
+from homework import load_array, save_array
+from homework import User, Homework, Statu
+import judger
 
 
 class Monitor:
     def __init__(self, user_filename, homework_filename, statu_filename):
         self.user_filename, self.homework_filename, self.statu_filename = user_filename, homework_filename, statu_filename
+        self.lock = threading.RLock()
         self.user_list, self.homework_list, self.statu_list = self.__load_all__()
     def __load_all__(self):
         return \
@@ -40,7 +44,11 @@ class Monitor:
         return None
     def create_statu(self, user_id, homework_id):
         res = Statu(user_id, homework_id, statu="", filename="", score="", comment="")
-        self.statu_list.append(res) # 线程安全
+        self.lock.acquire()
+        try:
+            self.statu_list.append(res) # 线程安全
+        finally:
+            self.lock.release()
         return res
     def load_homework_statu(self, user_id):
         res = []
@@ -52,3 +60,17 @@ class Monitor:
                     break
             res.append((homework, tmp))
         return res
+    def load_user_statu(self, homework_id):
+        res = []
+        for user in self.user_list:
+            tmp = None
+            for statu in self.statu_list:
+                if statu.user_id == user.id and statu.homework_id == homework_id:
+                    tmp = statu
+                    break
+            res.append((user, tmp))
+        return res
+
+    def judge(self, user, statu):
+        filepathname = statu.filename
+        return judger.judge(filepathname, in_filename, out_filename, delete_exe=False)

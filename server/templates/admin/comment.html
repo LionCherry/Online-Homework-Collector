@@ -1,0 +1,126 @@
+<!DOCTYPE html> 
+<html lang="cn"> 
+<head>
+	<meta charset="UTF-8">
+	<title>批改作业</title>
+	<script src="{{url_for('static', filename='jquery-3.4.1.js')}}"></script>
+	<link href="{{url_for('static', filename='mystyle.css')}}" rel="stylesheet" type="text/css" />
+	<script type="text/javascript">
+	$(function(){
+		var msg = $("#msg")[0].value;
+		if(msg != "")
+			alert(msg);
+		console.log(msg);
+	})
+	</script>
+</head>
+<body>
+	<input type="hidden" id="msg" value="{{msg}}"></input>
+	<div class="title">
+		{{user.name}}
+		({{user.id}})批改{{homework.name}}.
+		<span style="float: right; font-size: 0.8rem; padding-top: 20px; padding-right: 15px;">
+			<a href="{{ url_for('home') }}">返回作业列表</a>
+		</span>
+		<span style="float: right; font-size: 0.8rem; padding-top: 20px; padding-right: 15px;">
+			<a href="{{ url_for('comment_search', homework_id=homework.id) }}">批改下一个</a>
+		</span>
+	</div>
+
+	<table class="table" border="1" cellspacing="0" cellpadding="0">
+		<tr class="table_title">
+			<td>用户</td>
+			<td>ID</td>
+			<td>文件名</td>
+			<td>状态</td>
+			<td>评分</td>
+			<td>评语</td>
+		</tr>
+		<tr>
+			<td class="tabel_cell">{{statu.user.name}}</td>
+			<td class="tabel_cell">{{statu.user.id}}</td>
+			<td class="tabel_cell">{{statu.filename}}</td>
+			<td class="tabel_cell">{{statu.statu}}</td>
+			<td class="tabel_cell">
+				{% if statu.score == "" %}
+				未评分
+				{% else %}
+				{{statu.score}}
+				{% endif %}
+			</td>
+			<td class="tabel_cell">
+				{% if statu.score == "" %}
+				未评分
+				{% else %}
+				{{statu.comment}}
+				{% endif %}
+			</td>
+		</tr>
+		<tr style="border:1px;">
+			<td colspan="6" class="tabel_cell" style="font-family: Consolas; text-align: left;">
+				<div style="height: 300px; overflow:scroll">
+				{% if statu.content %}
+					{% for i, c in statu.content %}
+					<div>{{ ('&nbsp;'*i if i > 0 else '') | safe }}{{ c }}</div>
+					{% endfor %}
+				{% else %}
+					<div style="font-style: italic; color: red">nothing to show.</div>
+				{% endif %}
+				</div>
+			</td>
+		</tr>
+		<tr>
+			<td class="tabel_cell">
+				<form action="{{ url_for('download') }}" method="post" class="button"  style="display:inline;">
+					<input name="user_id" type="hidden" value="{{statu.user.id}}"/>
+					<input name="homework_id" type="hidden" value="{{homework.id}}"/>
+					<button type="submit" style="width: 36px;">
+						下载
+					</button>
+				</form>
+			</td>
+			<td class="tabel_cell">
+				{% if compile_msg %}
+				judger信息
+				{% endif %}
+			</td>
+			<td colspan="3" class="tabel_cell" style="text-align: left;">
+				{% if compile_msg %}
+					{% for a in compile_msg.split('\n') %}
+					<div style="color: {{'red' if loop.index == 1 else 'black'}}">{{ a.replace(' ','&nbsp;').replace('\t','&nbsp;&nbsp;&nbsp;&nbsp;') | safe}}</div>
+					{% endfor %}
+				{% endif %}
+			</td>
+			<td class="tabel_cell">
+				<form action="{{ url_for('comment_oper', homework_id=homework.id, user_id=statu.user.id, oper='compile') }}" method="post" class="button"  style="display:inline;">
+				{% if statu.no_compile %}
+					<button type="submit" style="width: 100px;"
+						disabled="disabled">
+						online-judge
+					</button>
+				{% else %}
+					<button type="submit" style="width: 110px;">
+						online-judge
+					</button>
+				{% endif %}
+				</form>
+			</td>
+		</tr>
+		<tr>
+			<form action="{{ url_for('comment_oper', homework_id=homework.id, user_id=statu.user.id, oper='comment') }}" method="post" class="button" style="display:inline;">
+				<td class="tabel_cell">
+					<input name="score" type="number"  min="0.00" max="1.00" step="0.01" value="1"/></td>
+				<td colspan="4" class="tabel_cell">
+					<input name="comment" type="text" value="{{statu.comment}}" style="width:100%;"/></td>
+				<td class="tabel_cell">
+					<div class="button">
+						<button type="submit" style="width: 110px;">
+							提交评分和评语
+						</button>
+					</div>
+				</td>
+			</form>
+		</tr>
+	</table>
+</body>
+</html> 
