@@ -15,7 +15,7 @@ def load_array(filename: str, type) -> dict:
             line = f.readline()
             if not line: break
             if line[-1] == '\n': line = line[:-1]
-            if not line: break
+            if not line: continue
             print(line.split('\t'))
             res.append(type(*line.split('\t')))
     return res
@@ -43,18 +43,20 @@ class User(flask_login.UserMixin):
         return '<User %s>' % self.id
 
 class Homework:
-    def __init__(self, id: str, time: str, name: str, description: str):
-        self.id, self.time, self.name, self.description = id, time, name, description
+    def __init__(self, id: str, time: str, name: str, allow_ext_list: str, description: str):
+        self.id, self.time, self.name, self.allow_ext_list, self.description = id, time, name, allow_ext_list, description
     def as_list(self):
-        return [self.id, self.time, self.name, self.description]
+        return [self.id, self.time, self.name, self.allow_ext_list, self.description]
     def get_timestamp(self):
         return int(time.mktime(time.strptime(self.time, '%Y-%m-%d %H:%M:%S')))
 
 class Statu:
-    def __init__(self, user_id, homework_id, statu: str, filename: str):
+    def __init__(self, user_id, homework_id, statu: str, filename: str, score, comment):
         self.user_id = user_id
         self.homework_id = homework_id
         self.statu = statu
         self.filename = filename
+        self.score = score
+        self.comment = comment
     def as_list(self):
-        return [self.user_id, self.homework_id, self.statu, self.filename]
+        return [self.user_id, self.homework_id, self.statu, self.filename, self.score, self.comment]

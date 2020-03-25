@@ -52,11 +52,11 @@ def setup_monitor(app):
 	for sig in [signal.SIGINT, signal.SIGTERM]:
 		signal.signal(sig, terminate_app)
 def setup_app(app, argv):
-	WORKSPACE_PATH = argv[1]
 	app.config.from_object('default_settings')
-	app.config['WORKSPACE_PATH'] = WORKSPACE_PATH
-	for db in ['DB_USER', 'DB_HOMEWORK', 'DB_STATU', 'FILE_SAVE_DIR']:
-		app.config[db] = os.path.join(WORKSPACE_PATH, app.config[db])
+	for db in ['DB_USER', 'DB_HOMEWORK', 'DB_STATU']:
+		app.config[db] = os.path.join(argv[1], app.config[db])
+	app.config['FILE_SAVE_DIR'] = argv[2]
+		
 	app.logger.addHandler(logging.StreamHandler())
 	app.logger.setLevel(logging.DEBUG)
 	# app.logger.info('STATIC_VERSION = {}'.format(app.config['STATIC_VERSION']))
@@ -87,7 +87,7 @@ def login():
 			flask_login.login_user(user)
 			app.logger.info('login success (%s,%s,%s)'%(user.id,user.pwd,user.name))
 			flask.session.permanent = True
-			app.permanent_session_lifetime = 60 * 2
+			app.permanent_session_lifetime = app.config['SESSON_LIFETIME']
 			return flask.redirect('home')
 		else:
 			msg = 'password error!'
@@ -133,50 +133,83 @@ def modify_pwd():
 @app.route('/home', methods=["GET"])
 @flask_login.login_required
 def home():
-	user = flask_login.current_user
-	hss = monitor.load_homework_statu(user.id)
-	hss = [{
-		'id': hs[0].id,
-		'time': hs[0].time,
-		'timestamp': hs[0].get_timestamp(),
-		'name': hs[0].name,
-		'description_list': hs[0].description.split('\\n'),
-		# 'description_height': 24 + 20 * len(hs[0].description.split('\\n')),
-		'statu': hs[1].statu if hs[1] is not None else '',
-	} for hs in hss]
-	data = {
-		'user': {'id': user.id, 'name': user.name},
-		'hss': hss,
-		# 'homework_list': monitor.load_homework(),
-		# 'statu_list': monitor.load_statu(user_id=user.id),
-		'now_timestamp': time.time(),
-		**flask.request.args
-	}
-	print(data)
-	return flask.render_template(
-		'home.html',
-		**data
-	)
+	try:
+    	# load user
+		user = flask_login.current_user
+		if not user.is_authenticated:
+			return flask.redirect('/login')
+		user_id = user.get_id()
+		global monitor
+		user = monitor.load_user(id=user_id)
+		if not user:
+			raise IOError('未找到用户(%s)' % user_id)
+		# load user end
+		hss = monitor.load_homework_statu(user_id=user_id)
+		hss = [{
+			'id': hs[0].id,
+			'time': hs[0].time,
+			'timestamp': hs[0].get_timestamp(),
+			'allow_ext_list': hs[0].allow_ext_list,
+			'name': hs[0].name,
+			'description_list': hs[0].description.split('\\n'),
+			# 'description_height': 24 + 20 * len(hs[0].description.split('\\n')),
+			'score': hs[1].score if hs[1] is not None else '',
+			'comment': hs[1].comment if hs[1] is not None else '',
+			'statu': hs[1].statu if hs[1] is not None else '',
+		} for hs in hss]
+		data = {
+			'user': {'id': user.id, 'name': user.name},
+			'hss': hss,
+			# 'homework_list': monitor.load_homework(),
+			# 'statu_list': monitor.load_statu(user_id=user.id),
+			'now_timestamp': time.time(),
+			**flask.request.args
+		}
+		return flask.render_template(
+			'home.html',
+			**data
+		)
+	except Exception as e:
+		app.logger.exception('Exception: %s' % e)
+		msg = '请重新登录(%s)' % e
+	return flask.redirect(flask.url_for('login', msg = msg))
 
 @app.route('/upload', methods=["POST"])
 @flask_login.login_required
 def upload():
 	replace = False
 	try:
-		file = flask.request.files['file']
+		try:
+			file = flask.request.files['file']
+		except:
+			raise IOError('文件不符合要求，请确保大小小于1MB')
+		if file.filename.find('.') < 0:
+			raise IOError('文件需要有拓展名')
 		ext = file.filename.rsplit('.', 1)[1].lower()
-		if ext not in app.config['HOMEWORK_ALLOW_EXT']:
-			raise IOError('文件拓展名需要在该范围内(%s)'%(','.join(app.config['HOMEWORK_ALLOW_EXT'])))
-		homework_id = flask.request.form['homework_id']
+		# if ext not in app.config['HOMEWORK_ALLOW_EXT']:
+		# 	raise IOError('文件拓展名需要在该范围内(%s)'%(','.join(app.config['HOMEWORK_ALLOW_EXT'])))
+		# load user
 		user = flask_login.current_user
+		if not user.is_authenticated:
+			return flask.redirect('/login')
 		user_id = user.get_id()
 		global monitor
+		user = monitor.load_user(id=user_id)
+		if not user:
+			raise IOError('未找到用户(%s)' % user_id)
+		# load user end
+		homework_id = flask.request.form['homework_id']
 		homework = monitor.load_homework(homework_id)
+		if not homework:
+			raise IOError('未选中作业(%s)' % homework_id)
+		allow_ext_list = homework.allow_ext_list.split(',')
+		if not allow_ext_list or ('all' in allow_ext_list or 'ALL' in allow_ext_list or 'All' in allow_ext_list):
+			allow_ext_list = app.config['HOMEWORK_ALLOW_EXT']
+		if ext not in allow_ext_list:
+			raise IOError('文件拓展名需要在规定范围内(%s)'%(','.join(allow_ext_list)))
 		statu = monitor.load_statu(user_id=user_id, homework_id=homework_id)
-		if statu is None:
+		if not statu:
 			statu = monitor.create_statu(user_id=user_id, homework_id=homework_id)
-		if homework is None:
-			raise IOErrpr('未选中作业(%s)' % homework_id)
 		app.logger.info("upload user(%s) homework(%s) [%s]file(%s)" % (user_id, homework_id, ext, file.filename))
 		path = os.path.join(
 			app.config['FILE_SAVE_DIR'],
@@ -184,9 +217,6 @@ def upload():
 		if not os.path.exists(path): os.makedirs(path)
 		filename = '%s.%s' % (user_id, ext)
 		filepath = os.path.join(path, filename)
-		print('>'*50)
-		print(statu.statu)
-		print(statu.filename)
 		if statu.statu == '已提交' and os.path.exists(os.path.join(path, statu.filename)):
 			app.logger.warning("      will replace the file(%s)" % statu.filename)
 			os.remove(os.path.join(path, statu.filename))
@@ -211,32 +241,47 @@ def upload():
 	except Exception as e:
 		app.logger.exception('Exception: %s' % e)
 		msg = '上传失败(%s)' % e
+	app.logger.info('redirect msg=%s'%msg)
 	return flask.redirect(flask.url_for('home', msg = msg))
 	
 @app.route('/download', methods=["POST"])
 @flask_login.login_required
 def download():
 	try:
-		homework_id = flask.request.form['homework_id']
+		# load user
 		user = flask_login.current_user
+		if not user.is_authenticated:
+			return flask.redirect('/login')
 		user_id = user.get_id()
 		global monitor
-		statu = monitor.load_statu(user_id=user_id, homework_id=homework_id)
+		user = monitor.load_user(id=user_id)
+		if not user:
+			raise IOError('未找到用户(%s)' % user_id)
+		# load user end
+		homework_id = flask.request.form['homework_id']
+		homework = monitor.load_homework(homework_id=homework_id)
+		if not homework:
+			raise IOError('未找到作业(%s)' % homework_id)
 		path = os.path.join(
 			app.config['FILE_SAVE_DIR'],
 			homework_id)
-		filename = statu.filename
-		filepath = os.path.join(path, filename)
+		statu = monitor.load_statu(user_id=user_id, homework_id=homework_id)
+		if not statu:
+			raise IOError('未找到作业提交状态(%s, %s)' % (user_id, homework_id))
 		if statu.statu == '未提交':
 			raise IOError('未提交')
+		filename = statu.filename
+		filepath = os.path.join(path, filename)
 		if not filename or not os.path.exists(filepath):
 			app.logger.exception('No Exists: %s' % filepath)
 			raise IOError('未找到文件(%s)' % filename)
-		app.logger.info("download user(%s) homework(%s) file(%s) from path: %s" % (user_id, homework_id, filename, filepath))
+		ext = filename.rsplit('.', 1)[1].lower()
+		app.logger.info("download user(%s) homework(%s) [%s]file(%s) from path: %s" % (user_id, homework_id, ext, filename, filepath))
+		download_filename = '(%s)%s.%s' % (user.name, homework.name, ext)
 		return flask.send_file(
 			filepath,
 			mimetype=mimetypes.guess_type(filename)[0],
-			attachment_filename=filename,
+			attachment_filename=download_filename,
 			as_attachment=True
 		)
 	except Exception as e:

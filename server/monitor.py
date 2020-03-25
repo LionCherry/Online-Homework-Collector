@@ -39,7 +39,7 @@ class Monitor:
                     return statu
         return None
     def create_statu(self, user_id, homework_id):
-        res = Statu(user_id, homework_id, statu="", filename="")
+        res = Statu(user_id, homework_id, statu="", filename="", score="", comment="")
         self.statu_list.append(res) # 线程安全
         return res
     def load_homework_statu(self, user_id):

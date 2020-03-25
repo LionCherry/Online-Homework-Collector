@@ -48,14 +48,17 @@
 			<td></td>
 			<!-- <button type="submit">登录</button> -->
 			<td colspan="2" class="tabel_cell" style="width:300px;">
-				<button type="submit" class="button"
-				style="width: 30%;">
-					确认修改
-				</button>
-				<a href="{{ url_for('login') }}" class="button"
-				style="width: 30%; margin-left: 40px;">
-					转到登录
-				</a>
+				<span class="button">
+					<button type="submit" style="width: 30%;">
+						确认修改
+					</button>
+				</span>
+				<span class="button">
+					<a href="{{ url_for('login') }}"
+					style="width: 30%; margin-left: 40px;">
+						转到登录
+					</a>
+				</span>
 			</td>
 			<td></td>
 		</tr>

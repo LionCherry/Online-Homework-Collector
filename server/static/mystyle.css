@@ -7,8 +7,8 @@
 	height: 55px;
 }
 .table{
-	width: 100%;
-	margin: 0;
+	width: 93%;
+	margin: 3%;
 	font-family: monospace;
 }
 .table_title{
@@ -21,10 +21,7 @@
 	text-align: center;
 	font-family: 微软雅黑,宋体,Arial,Helvetica,Verdana,sans-serif;
 	font-size: 14px;
-	padding-left: 12px;
-	padding-right: 12px;
-	padding-top: 0px;
-	padding-bottom: 0px;
+	padding: 12px;
 }
 .button button, .button a{
     display: inline-block;
