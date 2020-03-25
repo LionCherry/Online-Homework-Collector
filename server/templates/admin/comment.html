@@ -60,11 +60,9 @@
 			<td colspan="6" class="tabel_cell" style="font-family: Consolas; text-align: left;">
 				<div style="height: 300px; overflow:scroll; border: 3px gold solid;">
 				{% if statu.content %}
-					{% for i, c in statu.content %}
-						{{ ('&nbsp;'*i if i > 0 else '') | safe }}{{ c }}<br/>
-					{% endfor %}
+					<pre style="font-family: Consolas; margin: 0;">{{ statu.content }}</pre>
 				{% else %}
-					<div style="font-style: italic; color: red">nothing to show.</div>
+					<div style="font-style: italic; color: red; margin: 0;">nothing to show.</div>
 				{% endif %}
 				</div>
 			</td>
@@ -80,23 +78,24 @@
 				</form>
 			</td>
 			<td class="tabel_cell">
-				{% if compile_msg %}
+				{% if compile_res or compile_msg %}
 				judger信息
 				{% endif %}
 			</td>
 			<td colspan="3" class="tabel_cell" style="text-align: left;">
 				{% if compile_msg %}
-					{% for i, c in compile_msg %}
-					<div style="height: 16px; color: {{'red' if loop.index == 1 else 'black'}};">
-						{{ ('&nbsp;'*i if i > 0 else '') | safe }}{{ c }}
-					</div>
-					{% endfor %}
+					<div style="font-family: Consolas; font-weight: bold; color: red;">{{compile_res}}</div>
 				{% endif %}
+				<div>
+				{% if compile_msg %}
+					<pre style="font-family: Consolas; margin: 0;">{{compile_msg}}</pre>
+				{% endif %}
+				</div>
 			</td>
 			<td class="tabel_cell">
 				<form action="{{ url_for('comment_oper', homework_id=homework.id, user_id=statu.user.id, oper='compile') }}" method="post" class="button"  style="display:inline;">
 				{% if statu.no_compile %}
-					<button type="submit" style="width: 100px;"
+					<button type="submit" style="width: 110px;"
 						disabled="disabled">
 						online-judge
 					</button>

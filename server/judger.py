@@ -86,7 +86,7 @@ def read_file(filename, encoding=['utf-8','gbk','utf-16']):
 					line = f.readline()
 					if not line: break
 					res += line
-			print('READ END: '+res)
+			print('READ END')
 			return res
 		except UnicodeDecodeError as e:
 			print('UnicodeDecodeError')

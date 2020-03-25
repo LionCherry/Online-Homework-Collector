@@ -26,7 +26,20 @@ app = flask.Flask(
 def get_allow_ext_list(allow_ext_list):
 	if not allow_ext_list or ('all' in allow_ext_list or 'ALL' in allow_ext_list or 'All' in allow_ext_list):
 		return app.config['HOMEWORK_ALLOW_EXT']
-	return allow_ext_list	
+	return allow_ext_list
+	
+def judge(user, statu):
+	path = os.path.join(
+		app.config['FILE_SAVE_DIR'],
+		statu.homework_id)
+	filepath = os.path.join(path, statu.filename)
+	in_filename = os.path.join(
+		app.config['FILE_SAVE_DIR'],
+		'%s.%s' % (statu.homework_id, app.config['FILE_IN_EXT']))
+	out_filename = os.path.join(
+		app.config['FILE_SAVE_DIR'],
+		'%s.%s' % (statu.homework_id, app.config['FILE_OUT_EXT']))
+	return judger.judge(filepath, in_filename, out_filename, delete_exe=False)
 	
 
 ##########
@@ -195,28 +208,6 @@ def home():
 	return flask.redirect(flask.url_for('login', msg = msg))
 
 
-def judge(user, statu):
-	path = os.path.join(
-		app.config['FILE_SAVE_DIR'],
-		statu.homework_id)
-	filepath = os.path.join(path, statu.filename)
-	in_filename = os.path.join(
-		app.config['FILE_SAVE_DIR'],
-		'%s.%s' % (statu.homework_id, app.config['FILE_IN_EXT']))
-	out_filename = os.path.join(
-		app.config['FILE_SAVE_DIR'],
-		'%s.%s' % (statu.homework_id, app.config['FILE_OUT_EXT']))
-	return judger.judge(filepath, in_filename, out_filename, delete_exe=False)
-def get_blank_str_list(s):
-	res = []
-	for line in s.replace('\t', ' '*4).split('\n'):
-		i = 0
-		for c in line:
-			if c != ' ': break
-			i += 1
-		res.append((i, line[i:]))
-	return res
-
 
 @app.route('/comment/<homework_id>', methods=["GET"])
 @flask_login.login_required
@@ -334,7 +325,7 @@ def comment(homework_id, user_id):
 			'score': statu.score,
 			'comment': statu.comment,
 			'filename': statu.filename,
-			'content': get_blank_str_list(content) if content else '',
+			'content': content,
 			'no_compile': ext not in app.config['COMPILE_ALLOW_EXT'],
 		}
 		return flask.render_template(
@@ -398,7 +389,7 @@ def comment_oper(homework_id, user_id, oper):
 		elif oper == 'compile':
 			# ext = statu.filename.rsplit('.', 1)[1].lower()
 			# if ext not in app.config['COMPILE_ALLOW_EXT']:
-			compile_msg = ''
+			compile_res, compile_msg = '', ''
 			try:
 				judge(user=user, statu=statu)
 				statu.score, statu.comment = '1.00', ''
@@ -409,14 +400,17 @@ def comment_oper(homework_id, user_id, oper):
 					homework_id=homework_id,
 					msg = msg))
 			except judger.EX as ex:
-				compile_msg = '%s\n%s' % (type(ex).NAME, ex.msg)
+				compile_res = type(ex).NAME
+				compile_msg = ex.msg
 			except Exception as ex:
+				compile_res = type(ex)
 				compile_msg = ex
 			return flask.redirect(flask.url_for(
 				'comment',
 				homework_id=homework_id,
 				user_id=user_id,
-				compile_msg = get_blank_str_list(compile_msg) if compile_msg else ''
+				compile_res = compile_res,
+				compile_msg = compile_msg,
 			))
 		else:
 			raise Exception('Error Operation (%s)' % oper)
