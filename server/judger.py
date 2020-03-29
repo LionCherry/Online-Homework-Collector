@@ -47,9 +47,12 @@ def run_subprocess_with_time_limit(cmd, input, timeout, do_when_tle=None):
 def run_compile(path, filename, timeout=5.0):
 	name, ext = os.path.splitext(filename)
 	exe_filename = '(Compile)%s.exe' % name
+	change_desk = ''
+	if path[1] == ':':
+		change_desk = path[0:2] + ' && '
 	try:
 		returncode, compile_stdout, compile_stderr = run_subprocess_with_time_limit(
-			'cd "%s" && gcc "%s" -w -o "%s"' % (path, filename, exe_filename),
+			'%scd "%s" && gcc "%s" -w -o "%s"' % (change_desk, path, filename, exe_filename),
 			input=None,
 			timeout=timeout)
 	except TLE as tle:
@@ -58,14 +61,20 @@ def run_compile(path, filename, timeout=5.0):
 		raise CE('(%d)\n%s\nerr: %s' % (returncode, compile_stdout, compile_stderr))
 	return exe_filename
 def delete_file(path, filename):
+	change_desk = ''
+	if path[1] == ':':
+		change_desk = path[0:2] + ' && '
 	run_subprocess_with_time_limit(
-		'cd "%s" && del "%s"' % (path, filename),
+		'%scd "%s" && del "%s"' % (change_desk, path, filename),
 		input=None,
 		timeout=1.0,
 		do_when_tle=lambda :print('Delete File Error! (%s)' % os.path.join(path, filename)))
 def run_exe(path, filename, input, timeout=1.0):
+	change_desk = ''
+	if path[1] == ':':
+		change_desk = path[0:2] + ' && '
 	returncode, stdout, stderr = run_subprocess_with_time_limit(
-		'cd "%s" && "%s"' % (path, filename),
+		'%scd "%s" && "%s"' % (change_desk, path, filename),
 		input=input,
 		timeout=timeout,
 		do_when_tle=lambda :print('Run Time Limit Exceeded! (%s)' % os.path.join(path, filename)))
@@ -91,7 +100,7 @@ def read_file(filename, encoding=['utf-8','gbk','utf-16']):
 		except UnicodeDecodeError as e:
 			print('UnicodeDecodeError')
 		except Exception as e:
-			print(type(e))
+			raise e
 	raise IOError('Encoding Error (not in [%s])' % (','.join(encoding)))
 def check_content(c1, c2):
 	if c1 == c2: return True
@@ -100,7 +109,7 @@ def check_content(c1, c2):
 		t2 = c2.replace('\r\n', '\n').replace('\r', '\n')
 		return check_content(t1, t2)
 	if len(c1) < len(c2): return check_content(c2, c1)
-	if len(c1) == len(c2) + 1 and c1[-1] == '\n':
+	if len(c1) == len(c2) + 1 and c1[-1] == '\n' and c1[:-1] == c2:
 		return True
 	return False
 def judge(filename, in_filename, out_filename, delete_exe=False):
@@ -110,7 +119,7 @@ def judge(filename, in_filename, out_filename, delete_exe=False):
 		exe_filename = run_compile(path, filename)
 		input = read_file(in_filename) if in_filename and os.path.exists(in_filename) else None
 		stdout, stderr = run_exe(path, exe_filename, input)
-		output = '%s\nerr: %s' % (stdout, stderr)
+		output = stdout
 		if delete_exe:
 			delete_file(path, exe_filename)
 	elif ext in ['txt']:
@@ -118,6 +127,9 @@ def judge(filename, in_filename, out_filename, delete_exe=False):
 	else:
 		raise IOError('Ext is incorrect (%s)' % ext)
 	answer = read_file(out_filename) if out_filename and os.path.exists(out_filename) else ''
+	print('check content:')
+	print(output)
+	print(answer)
 	if check_content(output, answer):
 		return True
 	raise WA(output)

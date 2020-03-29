@@ -39,6 +39,7 @@ def judge(user, statu):
 	out_filename = os.path.join(
 		app.config['FILE_SAVE_DIR'],
 		'%s.%s' % (statu.homework_id, app.config['FILE_OUT_EXT']))
+	app.logger.info('judge(\n%s,\n%s,\n%s)' % (filepath, in_filename, out_filename))
 	return judger.judge(filepath, in_filename, out_filename, delete_exe=False)
 	
 
@@ -244,7 +245,7 @@ def comment_search(homework_id):
 						app.logger.info(tmp)
 						continue
 					except Exception as ex:
-						app.logger.debug(ex)
+						app.logger.exception(ex)
 						pass
 				user, statu = u, s
 				break
@@ -314,7 +315,7 @@ def comment(homework_id, user_id):
 			try:
 				content = judger.read_file(filepath)
 			except Exception as ex:
-				print(ex)
+				app.logger.exception(ex)
 				pass
 		data['statu'] = {
 			'user': {
@@ -392,18 +393,20 @@ def comment_oper(homework_id, user_id, oper):
 			compile_res, compile_msg = '', ''
 			try:
 				judge(user=user, statu=statu)
-				statu.score, statu.comment = '1.00', ''
-				tmp = '已自动批改(user:%s,homework:%s,score:%s,comment:%s)' % (statu.user_id, statu.homework_id, statu.score, statu.comment)
-				app.logger.info(tmp)
+				statu.score, statu.comment = '1', ''
+				msg = '已自动批改(user:%s,homework:%s,score:%s,comment:%s)' % (statu.user_id, statu.homework_id, statu.score, statu.comment)
+				app.logger.info(msg)
 				return flask.redirect(flask.url_for(
 					'comment_search',
 					homework_id=homework_id,
 					msg = msg))
 			except judger.EX as ex:
+				app.logger.exception(ex)
 				compile_res = type(ex).NAME
 				compile_msg = ex.msg
 			except Exception as ex:
-				compile_res = type(ex)
+				app.logger.exception(ex)
+				compile_res = '系统错误' # type(ex)
 				compile_msg = ex
 			return flask.redirect(flask.url_for(
 				'comment',
