@@ -344,39 +344,6 @@ def run_judge(user, statu, debug=logger.info):
 		compile_res = type(ex)
 		compile_msg = ex
 	return msg, compile_res, compile_msg
-
-@app.route('/comment/<homework_id>', methods=["GET"])
-@login_required(should_be_admin=True, redirect='login', msg='请重新登录')
-def comment_search(current_user, is_admin, homework_id):
-	msg = ''
-	homework = monitor.load_homework(homework_id)
-	if not homework:
-		raise Exception('未选中作业(%s)' % homework_id)
-	# for search next user
-	uss = monitor.load_user_statu(homework_id=homework_id)
-	user, statu, compile_res, compile_msg = None, None, None, None
-	for u, s in uss:
-		if s and s.score == '':
-			tmp, compile_res, compile_msg = run_judge(u, s, debug=logger.info)
-			if tmp is not None:
-				msg += tmp + '\r\n'
-				continue
-			# ext = s.filename.rsplit('.', 1)[1].lower()
-			# if ext not in app.config['COMPILE_ALLOW_EXT']:
-			user, statu = u, s
-			break
-	if not user or not statu:
-		msg += '已批改完作业:[%s]%s' % (homework.id, homework.name)
-		return flask.redirect(flask.url_for('home', msg = msg))
-	# msg += '开始批改作业:user:%s(%s)' % (user.name, user.id)
-	# msg = ''
-	return flask.redirect(flask.url_for(
-		'comment',
-		homework_id=homework_id,
-		user_id=user.id,
-		msg = msg,
-		compile_res=compile_res,
-		compile_msg=compile_msg))
 	
 @app.route('/comment/<homework_id>/<user_id>', methods=["GET"])
 @login_required(should_be_admin=True, redirect='login', msg='请重新登录')
@@ -434,6 +401,39 @@ def comment(current_user, is_admin, homework_id, user_id):
 		**data
 	)
 	
+@app.route('/comment/<homework_id>', methods=["GET"])
+@login_required(should_be_admin=True, redirect='login', msg='请重新登录')
+def comment_search(current_user, is_admin, homework_id):
+	msg = ''
+	homework = monitor.load_homework(homework_id)
+	if not homework:
+		raise Exception('未选中作业(%s)' % homework_id)
+	# for search next user
+	uss = monitor.load_user_statu(homework_id=homework_id)
+	user, statu, compile_res, compile_msg = None, None, None, None
+	for u, s in uss:
+		if s and s.score == '':
+			tmp, compile_res, compile_msg = run_judge(u, s, debug=logger.info)
+			if tmp is not None:
+				msg += tmp + '\r\n'
+				continue
+			# ext = s.filename.rsplit('.', 1)[1].lower()
+			# if ext not in app.config['COMPILE_ALLOW_EXT']:
+			user, statu = u, s
+			break
+	if not user or not statu:
+		msg += '已批改完作业:[%s]%s' % (homework.id, homework.name)
+		return flask.redirect(flask.url_for('home', msg = msg))
+	# msg += '开始批改作业:user:%s(%s)' % (user.name, user.id)
+	# msg = ''
+	return flask.redirect(flask.url_for(
+		'comment',
+		homework_id=homework_id,
+		user_id=user.id,
+		msg = msg,
+		compile_res=compile_res,
+		compile_msg=compile_msg))
+
 @app.route('/comment/<homework_id>/<user_id>/<oper>/', methods=["POST"])
 @login_required(should_be_admin=True, redirect='login', msg='请重新登录')
 def comment_oper(current_user, is_admin, homework_id, user_id, oper):
@@ -488,6 +488,12 @@ def comment_oper(current_user, is_admin, homework_id, user_id, oper):
 		))
 	else:
 		raise Exception('Error Operation (%s)' % oper)
+
+
+@app.route('/add_homework', methods=["POST"])
+@login_required(should_be_admin=True, redirect='login', msg='请重新登录')
+def add_homework(current_user, is_admin):
+
 
 ##########
 # Data URL
