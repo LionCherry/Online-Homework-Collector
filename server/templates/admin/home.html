@@ -61,7 +61,7 @@
 			<td style="width: 100px;">截止时间</td>
 			<td style="width: 180px">作业名称</td>
 			<td>作业内容</td>
-			<td style="width: 200px;">已提交 / 总人数</td>
+			<td style="width: 200px;">评价/提交/总数</td>
 			<td style="width: 10%">操作</td>
 		</tr>
 		{% for hs in hss %}
@@ -78,9 +78,21 @@
 				<div>{{ desc }}</div>
 				{% endfor %}
 			</td>
-			<!-- 已提交 / 总人数 -->
-			<td class="tabel_cell">
-				nothing
+			<!-- 评价/提交/总数 -->
+			<td class="tabel_cell" style="font-weight: bold;">
+				{{hs.number_of_comment}}
+				{% if hs.number_of_comment < hs.number_of_submit %}
+					(<span style="color: red;">
+						{{ hs.number_of_comment - hs.number_of_submit }}
+					</span>)
+				{% endif %}
+				&nbsp;/&nbsp;{{hs.number_of_submit}}
+				{% if hs.number_of_submit < number_of_user %}
+					(<span style="color: red;">
+						{{ hs.number_of_submit - number_of_user }}
+					</span>)
+				{% endif %}
+				&nbsp;/&nbsp;{{number_of_user}}
 			</td>
 			<!-- 操作 -->
 			<td class="tabel_cell">
