@@ -493,7 +493,7 @@ def comment_oper(current_user, is_admin, homework_id, user_id, oper):
 @app.route('/add_homework', methods=["POST"])
 @login_required(should_be_admin=True, redirect='login', msg='请重新登录')
 def add_homework(current_user, is_admin):
-
+	pass
 
 ##########
 # Data URL

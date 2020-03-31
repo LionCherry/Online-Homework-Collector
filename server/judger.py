@@ -51,9 +51,12 @@ def run_subprocess_with_time_limit(cmd, input, timeout, do_when_tle=None):
 def run_compile(path, filename, timeout=5.0):
 	name, ext = os.path.splitext(filename)
 	exe_filename = '(Compile)%s.exe' % name
+	change_desk = ''
+	if path[1] == ':':
+		change_desk = path[0:2] + ' && '
 	try:
 		returncode, compile_stdout = run_subprocess_with_time_limit(
-			'cd "%s" && gcc "%s" -w -o "%s"' % (path, filename, exe_filename),
+			'%scd "%s" && gcc "%s" -w -o "%s"' % (change_desk, path, filename, exe_filename),
 			input=None,
 			timeout=timeout)
 	except TLE as tle:
@@ -64,8 +67,11 @@ def run_compile(path, filename, timeout=5.0):
 def delete_file(path, filename):
 	if not os.path.exists(os.path.join(path, filename)):
 		return False
+	change_desk = ''
+	if path[1] == ':':
+		change_desk = path[0:2] + ' && '
 	run_subprocess_with_time_limit(
-		'cd "%s" && del "%s"' % (path, filename),
+		'%scd "%s" && del "%s"' % (change_desk, path, filename),
 		input=None,
 		timeout=1.0,
 		do_when_tle=lambda :print('Delete File Error! (%s)' % os.path.join(path, filename)))
@@ -81,8 +87,11 @@ def copy_file(from_filename, to_filename):
 				w.write(content)
 	return True
 def run_exe(path, filename, input, timeout=1.0):
+	change_desk = ''
+	if path[1] == ':':
+		change_desk = path[0:2] + ' && '
 	returncode, stdout = run_subprocess_with_time_limit(
-		'cd "%s" && "%s"' % (path, filename),
+		'%scd "%s" && "%s"' % (change_desk, path, filename),
 		input=input,
 		timeout=timeout,
 		do_when_tle=lambda :print('Run Time Limit Exceeded! (%s)' % os.path.join(path, filename)))
@@ -108,7 +117,7 @@ def read_file(filename, encoding=['utf-8','gbk','utf-16']):
 		except UnicodeDecodeError as e:
 			print('UnicodeDecodeError')
 		except Exception as e:
-			print(type(e))
+			raise e
 	raise IOError('Encoding Error (not in [%s])' % (','.join(encoding)))
 def check_content(c1, c2):
 	if c1 is None: c1 = ''
@@ -119,7 +128,7 @@ def check_content(c1, c2):
 		t2 = c2.replace('\r\n', '\n').replace('\r', '\n')
 		return check_content(t1, t2)
 	if len(c1) < len(c2): return check_content(c2, c1)
-	if len(c1) == len(c2) + 1 and c1[-1] == '\n':
+	if len(c1) == len(c2) + 1 and c1[-1] == '\n' and c1[:-1] == c2:
 		return True
 	return False
 def read_file_or_return_none(filename):
