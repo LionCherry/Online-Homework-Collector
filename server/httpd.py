@@ -16,7 +16,7 @@ from utils import (json_response, succ, fail, fix)
 
 from monitor import Monitor
 from homework import User
-from judger import read_file, EX
+from judger import read_file, EX, WA
 
 app = flask.Flask(
 	__name__,
@@ -168,7 +168,10 @@ def login_required(should_be_admin=False, redirect='login', msg='请重新登录
 				return f(current_user=current_user, is_admin=is_admin, *args, **kwargs)
 			except Exception as e:
 				logger.exception('Exception: %s' % e)
-				return flask.redirect(flask.url_for(redirect, msg='%s(%s)'%(msg, e)))
+				return flask.redirect(flask.url_for(
+					redirect,
+					msg='%s(%s)'%(msg, e) if msg else str(e)
+				))
 		_wrapper_f.__name__ = f.__name__
 		return _wrapper_f
 	return _wrapper
@@ -205,7 +208,7 @@ def home(current_user, is_admin):
 	}
 	if is_admin:
 		# calculate the number of users who submit the homework
-		data['number_of_user'] = monitor.count_user()
+		data['number_of_user'] = monitor.count_user() - len(app.config['ADMIN_ID'])
 		for hs in data['hss']:
 			submit, comment = 0, 0
 			for u, statu in monitor.load_user_statu(homework_id=hs['id']):
@@ -229,6 +232,7 @@ def home(current_user, is_admin):
 @app.route('/upload/', methods=["POST"])
 @login_required(should_be_admin=False, redirect='home', msg='上传失败')
 def upload(current_user, is_admin):
+	msg = ''
 	replace = False
 	try:
 		file = flask.request.files['file']
@@ -271,7 +275,8 @@ def upload(current_user, is_admin):
 		logger.exception('No Exists: %s' % filepath)
 		raise IOError('文件未储存')
 	# update in statu
-	if time.time() > homework.get_timestamp():
+	timestamp = homework.get_timestamp()
+	if timestamp >= 0 and time.time() > timestamp:
 		# raise Exception('已过提交时间(截止时间%s)' % (homework.time))
 		if statu.statu in [None, '', '未提交']:
 			statu.statu = '已补交'
@@ -287,7 +292,7 @@ def upload(current_user, is_admin):
 		msg = '提交成功' if not replace else '替换成功'
 	statu.filename = filename
 	statu.score, statu.comment = '', '' # 清空评语
-	return flask.redirect(flask.url_for('home', msg='上传成功'))
+	return flask.redirect(flask.url_for('home', msg='上传成功(%s)'%msg))
 	
 @app.route('/download/', methods=["POST"])
 @login_required(should_be_admin=False, redirect='home', msg='下载失败')
@@ -331,21 +336,28 @@ def download(current_user, is_admin):
 ##########
 # Admin
 def run_judge(user, statu, debug=logger.info):
-	msg, compile_res, compile_msg = None, None, None
+	msg, compile_res, compile_msg, compile_correct = None, None, None, None
 	try:
 		monitor.judge(user=user, statu=statu, debug=debug)
 		statu.score, statu.comment = '1', ''
 		msg = '已自动批改(user:%s,homework:%s,score:%s,comment:%s)' % (statu.user_id, statu.homework_id, statu.score, statu.comment)
 		debug(msg)
+	except WA as ex:
+		logger.exception(ex)
+		compile_res = ex.name()
+		compile_msg = ex.test_msg
+		compile_correct = ex.correct
 	except EX as ex:
+		logger.exception(ex)
 		compile_res = ex.name()
 		compile_msg = ex.test_msg
 	except Exception as ex:
+		logger.exception(ex)
 		compile_res = type(ex)
 		compile_msg = ex
-	return msg, compile_res, compile_msg
+	return msg, compile_res, compile_msg, compile_correct
 	
-@app.route('/comment/<homework_id>/<user_id>', methods=["GET"])
+@app.route('/comment/<homework_id>/<user_id>/', methods=["GET"])
 @login_required(should_be_admin=True, redirect='login', msg='请重新登录')
 def comment(current_user, is_admin, homework_id, user_id):
 	homework = monitor.load_homework(homework_id)
@@ -401,7 +413,7 @@ def comment(current_user, is_admin, homework_id, user_id):
 		**data
 	)
 	
-@app.route('/comment/<homework_id>', methods=["GET"])
+@app.route('/comment/<homework_id>/', methods=["GET"])
 @login_required(should_be_admin=True, redirect='login', msg='请重新登录')
 def comment_search(current_user, is_admin, homework_id):
 	msg = ''
@@ -410,15 +422,16 @@ def comment_search(current_user, is_admin, homework_id):
 		raise Exception('未选中作业(%s)' % homework_id)
 	# for search next user
 	uss = monitor.load_user_statu(homework_id=homework_id)
-	user, statu, compile_res, compile_msg = None, None, None, None
+	user, statu = None, None
+	compile_res, compile_msg, compile_correct = None, None, None
 	for u, s in uss:
 		if s and s.score == '':
-			tmp, compile_res, compile_msg = run_judge(u, s, debug=logger.info)
-			if tmp is not None:
-				msg += tmp + '\r\n'
-				continue
-			# ext = s.filename.rsplit('.', 1)[1].lower()
-			# if ext not in app.config['COMPILE_ALLOW_EXT']:
+			ext = s.filename.rsplit('.', 1)[1].lower()
+			if ext not in app.config['COMPILE_ALLOW_EXT']:
+				tmp, compile_res, compile_msg, compile_correct = run_judge(u, s, debug=logger.info)
+				if tmp is not None:
+					msg += tmp + '\r\n'
+					continue
 			user, statu = u, s
 			break
 	if not user or not statu:
@@ -432,7 +445,8 @@ def comment_search(current_user, is_admin, homework_id):
 		user_id=user.id,
 		msg = msg,
 		compile_res=compile_res,
-		compile_msg=compile_msg))
+		compile_msg=compile_msg,
+		compile_correct=compile_correct))
 
 @app.route('/comment/<homework_id>/<user_id>/<oper>/', methods=["POST"])
 @login_required(should_be_admin=True, redirect='login', msg='请重新登录')
@@ -471,9 +485,7 @@ def comment_oper(current_user, is_admin, homework_id, user_id, oper):
 			homework_id=homework_id,
 			msg = msg))
 	elif oper == 'compile':
-		# ext = statu.filename.rsplit('.', 1)[1].lower()
-		# if ext not in app.config['COMPILE_ALLOW_EXT']:
-		tmp, compile_res, compile_msg = run_judge(user, statu, debug=logger.info)
+		tmp, compile_res, compile_msg, compile_correct = run_judge(user, statu, debug=logger.info)
 		if tmp is not None:
 			return flask.redirect(flask.url_for(
 				'comment_search',
@@ -485,15 +497,96 @@ def comment_oper(current_user, is_admin, homework_id, user_id, oper):
 			user_id=user_id,
 			compile_res = compile_res,
 			compile_msg = compile_msg,
+			compile_correct=compile_correct
 		))
 	else:
 		raise Exception('Error Operation (%s)' % oper)
 
+##########
+# Admin Create
+@app.route('/add_user/', methods=["POST"])
+@login_required(should_be_admin=True, redirect='home', msg='')
+def add_user(current_user, is_admin):
+	msg = ''
+	user_id = flask.request.form['user_id']
+	user = monitor.load_user(user_id)
+	if user:
+		raise Exception('已存在用户id=%s,name=%s' % (user_id, user.name))
+	pwd = flask.request.form['pwd']
+	name = flask.request.form['name']
+	user = monitor.create_user(user_id, pwd, name)
+	if not user:
+		raise Exception('未知错误创建失败!')
+	msg = '创建成功'
+	return flask.redirect(flask.url_for('home', msg = msg))
 
-@app.route('/add_homework', methods=["POST"])
-@login_required(should_be_admin=True, redirect='login', msg='请重新登录')
+@app.route('/add_homework/', methods=["POST"])
+@login_required(should_be_admin=True, redirect='home', msg='')
 def add_homework(current_user, is_admin):
-	pass
+	msg = ''
+	homework_id = flask.request.form['homework_id']
+	homework = monitor.load_homework(homework_id=homework_id)
+	if homework:
+		raise Exception('已存在作业id=%s,name=%s' % (homework_id, homework.name))
+	time = flask.request.form['time']
+	name = flask.request.form['name']
+	allow_ext_list = flask.request.form['allow_ext_list']
+	description = flask.request.form['description']
+	homework = monitor.create_homework(homework_id, time, name, allow_ext_list, description)
+	if not homework:
+		raise Exception('未知错误创建失败!')
+	msg = '创建成功'
+	return flask.redirect(flask.url_for('home', msg = msg))
+@app.route('/homework/<homework_id>/', methods=["GET"])
+@login_required(should_be_admin=True, redirect='home', msg='请重新登录')
+def home_homework(current_user, is_admin, homework_id):
+	homework = monitor.load_homework(homework_id)
+	if not homework:
+		raise Exception('未选中作业(%s)' % homework_id)
+	data = {
+		'user': {
+			'id': current_user.id,
+			'name': current_user.name,
+		},
+		'now_timestamp': time.time(),
+		'homework': {
+			'id': homework_id,
+			'time': homework.time,
+			'timestamp': homework.get_timestamp(),
+			'allow_ext_list': ','.join(get_allow_ext_list(homework.allow_ext_list.split(','))),
+			'name': homework.name,
+			'description_list': homework.description.split('\\n'),
+		},
+		'number_of_user': monitor.count_user() - len(app.config['ADMIN_ID']),
+		**flask.request.args,
+		**flask.request.form,
+	}
+	submit, comment = 0, 0
+	for u, statu in monitor.load_user_statu(homework_id=homework_id):
+		if statu not in [None, '', '未提交']:
+			submit += 1
+			if not (statu.score == ''):
+				comment += 1
+	data['homework']['number_of_submit'] = submit
+	data['homework']['number_of_comment'] = comment
+	return flask.render_template(
+		'admin/home_homework.html',
+		**data,
+	)
+
+@app.route('/homework/<homework_id>/add_judge/', methods=["POST"])
+@login_required(should_be_admin=True, redirect='home', msg='')
+def add_judge(current_user, is_admin, homework_id):
+	msg = ''
+	homework = monitor.load_homework(homework_id)
+	if not homework:
+		raise Exception('未选中作业(%s)' % homework_id)
+	submit_file_type = flask.request.form['submit_file_type']
+	user = monitor.create_judge(homework_id, submit_file_type)
+	if not user:
+		raise Exception('未知错误创建失败!')
+	msg = '创建成功'
+	return flask.redirect(flask.url_for('home', msg = msg))
 
 ##########
 # Data URL

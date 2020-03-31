@@ -91,6 +91,10 @@
 				{% if compile_msg %}
 					<pre style="font-family: Consolas; margin: 0;">{{compile_msg}}</pre>
 				{% endif %}
+				{% if compile_correct %}
+					<div style="font-family: Consolas; font-weight: bold; color: green;">Should Be:</div>
+					<pre style="font-family: Consolas; margin: 0;">{{compile_correct}}</pre>
+				{% endif %}
 				</div>
 			</td>
 			<td class="tabel_cell">

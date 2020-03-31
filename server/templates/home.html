@@ -65,7 +65,7 @@
 			<td style="width: 10%">操作</td>
 		</tr>
 		{% for hs in hss %}
-		<tr style="background-color: {{'lightgrey' if now_timestamp > hs.timestamp else ('lightgoldenrodyellow' if now_timestamp + 7*24*3600 > hs.timestamp else 'inherit')}};">
+		<tr style="background-color: {{'lightgrey' if hs.timestamp >= 0 and now_timestamp > hs.timestamp else ('lightgoldenrodyellow' if hs.timestamp >= 0 and now_timestamp + 7*24*3600 > hs.timestamp else 'inherit')}};">
 			<!-- 序号 -->
 			<td class="tabel_cell">{{loop.index}}</td>
 			<!-- 截止时间 -->
@@ -94,7 +94,7 @@
 			{% endif %}
 			<!-- 操作 -->
 			<td class="tabel_cell">
-			{% if now_timestamp > hs.timestamp %}
+			{% if hs.timestamp >= 0 and now_timestamp > hs.timestamp %}
 				{% if hs.statu == "未提交" or hs.statu == "" %}
 				<form id="upload_form" action="{{ url_for('upload') }}" method="post" enctype="multipart/form-data"
 				class="button">

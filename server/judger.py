@@ -25,7 +25,12 @@ class MLE(EX):
 	def __init__(self, msg): super().__init__(msg)
 class WA(EX):
 	NAME='Wrong Answer'
-	def __init__(self, msg): super().__init__(msg)
+	def __init__(self, msg, correct=''):
+		super().__init__(msg)
+		self.correct = correct
+class WA_File(WA):
+	NAME='Wrong Answer In File'
+	def __init__(self, msg, correct=''): super().__init__(msg, correct=correct)
 class CE(EX):
 	NAME='Compile Error'
 	def __init__(self, msg): super().__init__(msg)
@@ -67,6 +72,7 @@ def run_compile(path, filename, timeout=5.0):
 def delete_file(path, filename):
 	if not os.path.exists(os.path.join(path, filename)):
 		return False
+	print('Delete File: %s' % filename)
 	change_desk = ''
 	if path[1] == ':':
 		change_desk = path[0:2] + ' && '
@@ -79,6 +85,7 @@ def delete_file(path, filename):
 def copy_file(from_filename, to_filename):
 	if from_filename == to_filename:
 		return False
+	print('Copy File: %s => %s' % (from_filename, to_filename))
 	with open(from_filename, 'r') as f:
 		with open(to_filename, 'w') as w:
 			while True:
@@ -134,32 +141,32 @@ def check_content(c1, c2):
 def read_file_or_return_none(filename):
 	return read_file(filename) if filename and os.path.exists(filename) else None
 
-def judge(source, in_filename, out_filename, file_in_filename=None, file_out_filename=None, file_generate_filename=None, delete_exe=False, debug=lambda a:a):
+def judge(source, in_filename, out_filename, file_in_filename=None, file_out_filename=None, file_generate_name=None, delete_exe=False, debug=lambda a:a):
 	path, source = os.path.split(source)
 	exe_filename = run_compile(path, source, timeout=5.0)
 	input = read_file_or_return_none(in_filename)
 	# copy file
 	if file_in_filename:
-		copy_file_in_filename = os.path.join(path, os.path.split(file_in_filename)[0])
+		copy_file_in_filename = os.path.join(path, os.path.split(file_in_filename)[1])
 		do_copy = copy_file(file_in_filename, copy_file_in_filename)
 	else: do_copy = False
 	# run
 	stdout = run_exe(path, exe_filename, input, timeout=2.0)
-	file_generate_content = read_file_or_return_none(os.path.join(path, file_generate_filename))
+	file_generate_content = read_file_or_return_none(os.path.join(path, file_generate_name))
 	# delete
 	if delete_exe:
 		delete_file(path, exe_filename)
-	if file_generate_filename:
-		delete_file(path, file_generate_filename)
+	if file_generate_name:
+		delete_file(path, file_generate_name)
 	if do_copy:
 		delete_file(*os.path.split(copy_file_in_filename))
 	# check answer
 	answer = read_file_or_return_none(out_filename)
 	if not check_content(stdout, answer):
-		raise WA(stdout)
+		raise WA(stdout, correct=answer)
 	file_out_content = read_file_or_return_none(os.path.join(path, file_out_filename))
 	if not check_content(file_generate_content, file_out_content):
-		raise WA(file_generate_content)
+		raise WA_File(file_generate_content, correct=file_out_content)
 	
 def judge_file(out_filename, answer_filename, debug=lambda a:a):
 	output = read_file_or_return_none(out_filename)
@@ -168,7 +175,7 @@ def judge_file(out_filename, answer_filename, debug=lambda a:a):
 	debug('output(%s):\n%s'%(out_filename,output))
 	debug('answer(%s):\n%s'%(answer_filename,answer))
 	if not check_content(output, answer):
-		raise WA(output)
+		raise WA(output, correct=answer)
 
 
 

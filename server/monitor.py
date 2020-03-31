@@ -3,6 +3,7 @@
 The monitor for database.
 '''
 import os
+import time
 import threading
 
 from homework import Item, User, Homework, Statu, Judge
@@ -31,6 +32,8 @@ class Monitor:
     def terminate(self):
         self.__save_all__()
     
+    ##########
+    # Load
     def load_user(self, id):
         for user in self.user_list:
             if user.id == id:
@@ -52,26 +55,6 @@ class Monitor:
         for judge in self.judge_list:
             if judge.homework_id == homework_id:
                 res.append(judge)
-        return res
-    def create_judge(self, homework_id, submit_file_type):
-        self.lock.acquire()
-        try:
-            res = self.load_judge(homework_id)
-            if res is not None: return res
-            res = Judge(homework_id, submit_file_type, test_source="", test_in="", test_out="")
-            self.judge_list.append(res) # 线程安全
-        finally:
-            self.lock.release()
-        return res
-    def create_statu(self, user_id, homework_id):
-        self.lock.acquire()
-        try:
-            res = self.load_statu(user_id, homework_id)
-            if res is not None: return res
-            res = Statu(user_id, homework_id, statu="", filename="", score="", comment="")
-            self.statu_list.append(res) # 线程安全
-        finally:
-            self.lock.release()
         return res
     def load_homework_statu(self, user_id):
         res = []
@@ -96,7 +79,60 @@ class Monitor:
     def count_user(self):
         return len(self.user_list)
 
+    ##########
+    # Create
+    def create_user(self, id, pwd, name):
+        self.lock.acquire()
+        try:
+            res = self.load_user(id)
+            if res is not None: return res
+            res = User(id, pwd, name)
+            self.user_list.append(res) # 线程安全
+        finally:
+            self.lock.release()
+        return res
+    def create_homework(self, id, _time, name, allow_ext_list, description):
+        try:
+            int(time.mktime(time.strptime(_time, '%Y-%m-%d %H:%M:%S')))
+        except Exception:
+            raise AttributeError('`time` should be formed like "%Y-%m-%d %H:%M:%S"')
+        self.lock.acquire()
+        try:
+            res = self.load_homework(id)
+            if res is not None: return res
+            res = Homework(id, _time, name, allow_ext_list, description)
+            self.homework_list.append(res) # 线程安全
+        finally:
+            self.lock.release()
+        return res
+    def create_statu(self, user_id, homework_id, statu="", filename="", score="", comment=""):
+        statu = '' if statu is None else statu
+        if statu not in ['', '未提交', '已提交', '已补交']:
+            raise AttributeError('`statu` should be in [未提交,已提交,已补交]')
+        self.lock.acquire()
+        try:
+            res = self.load_statu(user_id, homework_id)
+            if res is not None: return res
+            res = Statu(user_id, homework_id, statu, filename, score, comment)
+            self.statu_list.append(res) # 线程安全
+        finally:
+            self.lock.release()
+        return res
+    def create_judge(self, homework_id, submit_file_type, test_source="", test_in="", test_out="", file_in="", file_out="", file_generate_name=""):
+        if submit_file_type not in ['in', 'out', 'source']:
+            raise AttributeError('`submit_file_type` should be in [in,out,source]')
+        self.lock.acquire()
+        try:
+            res = self.load_judge(homework_id)
+            if res is not None: return res
+            res = Judge(homework_id, submit_file_type, test_source, test_in, test_out, file_in, file_out, file_generate_name)
+            self.judge_list.append(res) # 线程安全
+        finally:
+            self.lock.release()
+        return res
 
+    ##########
+    # Judge
     def judge(self, user, statu, debug=lambda a:a):
         judge_path = os.path.join(self.file_judge_dir, statu.homework_id)
         user_file = os.path.join(self.file_save_dir, statu.homework_id, statu.filename) # user submit
@@ -119,12 +155,11 @@ class Monitor:
                     continue
                 file_in_filename = os.path.join(judge_path, judge.file_in) if judge.file_in else ''
                 file_out_filename = os.path.join(judge_path, judge.file_out) if judge.file_out else ''
-                file_generate_filename = os.path.join(judge_path, judge.file_generate_name) if judge.file_generate_name else ''
                 # judger
                 judger.judge(source, test_in, test_out,
                     file_in_filename=file_in_filename,
                     file_out_filename=file_out_filename,
-                    file_generate_filename=file_generate_filename,
+                    file_generate_name=judge.file_generate_name,
                     delete_exe=True, debug=debug)
             except judger.EX as ex:
                 ex.test_id = i

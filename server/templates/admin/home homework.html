@@ -1,0 +1,118 @@
+<!DOCTYPE html> 
+<html lang="cn"> 
+<head>
+	<meta charset="UTF-8">
+	<title>管理员操作台 - 作业[{{homework.id}}]{{homework.name}}</title>
+	<script src="{{url_for('static', filename='jquery-3.4.1.js')}}"></script>
+	<link href="{{url_for('static', filename='mystyle.css')}}" rel="stylesheet" type="text/css" />
+	<script type="text/javascript">
+	$(function(){
+		$(".upload_button").click(function(){
+			console.log('upload button is clicked.');
+			console.log($(this).prev());
+			$(this).prev().click();
+		})
+		$(".file").change(function(){
+			console.log('upload file changed.');
+			var fileSize =  this.files[0].size;
+			var filename = this.files[0].name;
+			console.log('name='+filename+', fileSize='+fileSize);
+			if(fileSize > 1024 * 1024){
+				alert('上传文件不得超过1MB');
+				return;
+			}
+			var tmp = filename.split(".");
+			var ext = tmp[tmp.length - 1].toLowerCase();
+			// var ext_list = ['cpp','c','h','hpp','rar','zip','doc','docx','pdf','txt','tsv','png','jpg','bmp'];
+			console.log($(this)[0]);
+			var  allow_ext_list = $(this)[0].getAttribute('allow_ext_list').split(',');
+			var ext_exist = false;
+			allow_ext_list.forEach(e => { if(e == ext) ext_exist = true; });
+			if(ext_exist==false){
+				alert('上传文件拓展名需要在以下范围('+allow_ext_list.join(',')+')');
+				return;
+			}
+			console.log($(this).parent());
+			$(this).parent().submit();
+		})
+		var msg = $("#msg")[0].value;
+		if(msg != "")
+			alert(msg);
+		console.log(msg);
+	})
+	</script>
+</head>
+<body>
+	<input type="hidden" id="msg" value="{{msg}}"></input>
+	<div class="title">
+		作业[{{homework.id}}]{{homework.name}}
+		<span style="float: right; font-size: 0.8rem; padding-top: 20px; padding-right: 15px;">
+			<a href="{{ url_for('home') }}">回到首页</a>
+		</span>
+	</div>
+
+	<table class="table" border="1" cellspacing="0" cellpadding="0">
+		<tr class="table_title" style="height: 40px; background-color: white;">
+			<td style="width: 25px;">ID</td>
+			<td style="width: 100px;">截止时间</td>
+			<td style="width: 180px">作业名称</td>
+			<td>作业内容</td>
+			<td style="width: 200px;">评价/提交/总数</td>
+			<td style="width: 40px">操作</td>
+		</tr>
+		<tr style="background-color: {{'lightgrey' if homework.timestamp >= 0 and now_timestamp > homework.timestamp else ('lightgoldenrodyellow' if homework.timestamp >= 0 and now_timestamp + 7*24*3600 > homework.timestamp else 'inherit')}};">>
+			<!-- 序号 -->
+			<td class="tabel_cell">{{homework.id}}</td>
+			<!-- 截止时间 -->
+			<td class="tabel_cell">{{homework.time}}</td>
+			<!-- 作业名称 -->
+			<td class="tabel_cell">{{homework.name}}</td>
+			<!-- 作业内容 -->
+			<td class="tabel_cell" style="text-align: left; height: {{14+20*(homework.description_list | length)}}px;">
+				{% for desc in homework.description_list %}
+				<div>{{ desc }}</div>
+				{% endfor %}
+			</td>
+			<!-- 评价/提交/总数 -->
+			<td class="tabel_cell" style="font-weight: bold;">
+				{{homework.number_of_comment}}
+				{% if homework.number_of_comment < homework.number_of_submit %}
+					(<span style="color: red;">
+						{{ homework.number_of_comment - homework.number_of_submit }}
+					</span>)
+				{% endif %}
+				&nbsp;/&nbsp;{{homework.number_of_submit}}
+				{% if homework.number_of_submit < number_of_user %}
+					(<span style="color: red;">
+						{{ homework.number_of_submit - number_of_user }}
+					</span>)
+				{% endif %}
+				&nbsp;/&nbsp;{{number_of_user}}
+			</td>
+			<!-- 操作 -->
+			<td class="tabel_cell">
+				<form action="{{ url_for('comment_search', homework_id=homework.id) }}" method="get" class="button" style="display:inline;">
+					<input name="homework_id" type="hidden" value="{{homework.id}}"/>
+					<button type="submit" style="width: 36px; background-color: darkred;" >
+						批改
+					</button>
+				</form>
+			</td>
+		</tr>
+	</table>
+	<!-- Judge -->
+	<table class="table" border="1" cellspacing="0" cellpadding="0">
+		<tr class="table_title" style="height: 40px; background-color: white;">
+			<td style="width: 25px;">序号</td>
+			<td style="width: 50px;">类型</td>
+			<td style="width: 10%">test_source</td>
+			<td style="width: 10%">test_in</td>
+			<td style="width: 10%">test_out</td>
+			<td style="width: 10%">file_in</td>
+			<td style="width: 10%">file_out</td>
+			<td style="width: 10%">file_generate_name</td>
+			<td style="width: 40px">操作</td>
+		</tr>
+	</table>
+</body>
+</html> 
